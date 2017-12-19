@@ -6,7 +6,9 @@ import numpy
 import csv
 
 class Titanic:
-	FEATURES = ["Pclass","Sex","Age","SibSp","Parch"]
+
+	#FEATURES = ["Pclass","Sex","Age","SibSp","Parch"]
+	FEATURES = ["Pclass","SibSp","Parch"]
 	LABEL = ["Survived"]
 
 
@@ -32,17 +34,20 @@ class Titanic:
 					train_set[k].append(fullDict[k][n])
 		return train_set, test_set
 
-
 	#https://www.tensorflow.org/get_started/input_fn
 	def get_input_fn(self, data_set, num_epochs=None, shuffle=True):
 		numpyDict = {}
 		for k in self.FEATURES:
-			numpyDict[k]=numpy.asarray(data_set[k])
+			print(k)
+			print(data_set[k])
+			print([float(i) for i in data_set[k]])
+			numpyDict[k]=numpy.asarray([float(i) for i in data_set[k]])
+			print(str(k)+" first entry is "+str(data_set[k][0]))
 		return tf.estimator.inputs.numpy_input_fn(
-    		x={"x": numpyDict},
+    		x=numpyDict,
     		y=numpy.asarray(data_set[self.LABEL[0]]),
-    		num_epochs=None,
-    		shuffle=True)
+    		num_epochs=num_epochs,
+    		shuffle=shuffle)
 
 	def loadCsvData(self, csvFilename):
 		columnDict={}
@@ -64,12 +69,22 @@ class Titanic:
 		return dataDict
 
 	def printCsvDict(self):
-		print(str(self.dataDict))
+		print(str(self.train_set))
 
-	#def trainModel(self):
+	def trainModel(self):
+		# Feature cols
+		feature_cols = [tf.feature_column.numeric_column(k) for k in self.FEATURES]
+		#tf.estimator.
+		# Build 2 layer fully connected DNN with 10, 10 units respectively.
+		self.classifier = tf.estimator.DNNClassifier(feature_columns=feature_cols,
+			hidden_units=[10, 10],
+			model_dir="/tmp/boston_model")
 
+		# Train
+		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=5000)
 
 
 titanic = Titanic("../data/train.csv")
 #titanic.printCsvDict()
-print(str(titanic.get_input_fn(titanic.train_set)))
+#print(str(titanic.get_input_fn(titanic.train_set)))
+titanic.trainModel()
