@@ -5,4 +5,5 @@ RUN apt-get -y install curl
 RUN cd /root/ && curl https://bootstrap.pypa.io/get-pip.py > get-pip.py && python3 get-pip.py
 RUN pip install tensorflow
 RUN apt-get -y install vim
-COPY data /root/data
+COPY data /root/data/
+COPY bin /root/bin/
