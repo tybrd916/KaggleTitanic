@@ -4,6 +4,8 @@
 import tensorflow as tf
 import numpy
 import csv
+import logging
+logging.getLogger().setLevel(logging.ERROR)
 
 class Titanic:
 
@@ -35,7 +37,7 @@ class Titanic:
 		return train_set, test_set
 
 	#https://www.tensorflow.org/get_started/input_fn
-	def get_input_fn(self, data_set, num_epochs=None, shuffle=True):
+	def get_input_fn(self, data_set, num_epochs=5, shuffle=True):
 		numpyDict = {}
 		for k in self.FEATURES:
 			numpyDict[k]=numpy.asarray([float(i) for i in data_set[k]])
@@ -71,13 +73,17 @@ class Titanic:
 		# Feature cols
 		feature_cols = [tf.feature_column.numeric_column(k) for k in self.FEATURES]
 		#tf.estimator.
-		# Build 2 layer fully connected DNN with 10, 10 units respectively.
+		# Build 1 layer fully connected DNN with 10, 10 units respectively.
 		self.classifier = tf.estimator.DNNClassifier(feature_columns=feature_cols,
-			hidden_units=[10, 10],
+			hidden_units=[10],
 			model_dir="/tmp/boston_model")
 
 		# Train
 		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=5000)
+		#steps=50   loss final = 78.835
+		#steps=500  loss final = 80.6114
+		#steps=5000 loss final = 76.5161
+		#steps=50000loss final = 68.7828
 
 	def evaluateModel(self):
 		# Evaluate accuracy.
