@@ -79,8 +79,15 @@ class Titanic:
 		# Train
 		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=5000)
 
+	def evaluateModel(self):
+		# Evaluate accuracy.
+		print("Evaluate accuracy score")
+		accuracy_score = self.classifier.evaluate(input_fn=self.get_input_fn(self.test_set))["accuracy"]
+
+		print("\nTest Accuracy: {0:f}\n".format(accuracy_score))
 
 titanic = Titanic("../data/train.csv")
 #titanic.printCsvDict()
 #print(str(titanic.get_input_fn(titanic.train_set)))
 titanic.trainModel()
+titanic.evaluateModel()
