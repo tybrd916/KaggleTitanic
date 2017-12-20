@@ -7,3 +7,4 @@ RUN pip install tensorflow
 RUN apt-get -y install vim
 COPY data /root/data/
 COPY bin /root/bin/
+RUN mkdir -p /root/bin/tf_model/

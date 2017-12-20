@@ -7,6 +7,7 @@ import csv
 import logging
 logging.getLogger().setLevel(logging.ERROR)
 import shutil
+import re
 
 class Titanic:
 
@@ -25,15 +26,18 @@ class Titanic:
 		print("test_set_size="+str(len(self.test_set[self.FEATURES[0]])))
 
 	def resolveFloat(self, k, val):
-		if k in self.columnMap:
-			if val not in self.columnMap[k]:
-				self.columnMap[k]["num_idx"]=self.columnMap[k]["num_idx"]+1.0
-				self.columnMap[k][val]=self.columnMap[k]["num_idx"]
-		else:
-			self.columnMap[k]={}
-			self.columnMap[k]["num_idx"]=0.0
-			self.columnMap[k][val]=0.0
-		return self.columnMap[k][val]
+		try:
+			return float(val)
+		except ValueError:
+			if k in self.columnMap:
+				if val not in self.columnMap[k]:
+					self.columnMap[k]["num_idx"]=self.columnMap[k]["num_idx"]+1.0
+					self.columnMap[k][val]=self.columnMap[k]["num_idx"]
+			else:
+				self.columnMap[k]={}
+				self.columnMap[k]["num_idx"]=0.0
+				self.columnMap[k][val]=0.0
+			return self.columnMap[k][val]
 
 	def partitionTestSet(self,fullDict,modulo):
 		train_set={}
@@ -52,7 +56,7 @@ class Titanic:
 		return train_set, test_set
 
 	#https://www.tensorflow.org/get_started/input_fn
-	def get_input_fn(self, data_set, num_epochs=5, shuffle=False):
+	def get_input_fn(self, data_set, num_epochs=250, shuffle=True):
 		numpyDict = {}
 		for k in self.FEATURES:
 			print(str(k)+" first 10 items "+str(data_set[k][0:10]))
