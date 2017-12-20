@@ -37,7 +37,7 @@ class Titanic:
 		return train_set, test_set
 
 	#https://www.tensorflow.org/get_started/input_fn
-	def get_input_fn(self, data_set, num_epochs=5, shuffle=True):
+	def get_input_fn(self, data_set, num_epochs=5, shuffle=False):
 		numpyDict = {}
 		for k in self.FEATURES:
 			numpyDict[k]=numpy.asarray([float(i) for i in data_set[k]])
@@ -79,7 +79,7 @@ class Titanic:
 			model_dir="/tmp/boston_model")
 
 		# Train
-		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=5000)
+		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=None)
 		#steps=50   loss final = 78.835
 		#steps=500  loss final = 80.6114
 		#steps=5000 loss final = 76.5161
