@@ -5,13 +5,13 @@ import tensorflow as tf
 import numpy
 import csv
 import logging
-logging.getLogger().setLevel(logging.ERROR)
+logging.getLogger().setLevel(logging.INFO)
 import shutil
 import re
 
 class Titanic:
 
-	FEATURES = ["Pclass","Sex","Age","SibSp","Parch"]
+	FEATURES = ["Pclass","Sex","Age","SibSp","Parch","Cabin"]
 	#FEATURES = ["Pclass","SibSp","Parch"]
 	LABEL = ["Survived"]
 
@@ -21,7 +21,7 @@ class Titanic:
 		shutil.rmtree('tf_model')
 		print("Starting Titanic machine learning exercise")
 		fullDict=self.loadCsvData(csvFilename)
-		self.train_set, self.test_set=self.partitionTestSet(fullDict,3)
+		self.train_set, self.test_set=self.partitionTestSet(fullDict,5)
 		print("train_set_size="+str(len(self.train_set[self.FEATURES[0]])))
 		print("test_set_size="+str(len(self.test_set[self.FEATURES[0]])))
 
@@ -56,10 +56,10 @@ class Titanic:
 		return train_set, test_set
 
 	#https://www.tensorflow.org/get_started/input_fn
-	def get_input_fn(self, data_set, num_epochs=250, shuffle=True):
+	def get_input_fn(self, data_set, num_epochs=2000, shuffle=True):
 		numpyDict = {}
 		for k in self.FEATURES:
-			print(str(k)+" first 10 items "+str(data_set[k][0:10]))
+			#print(str(k)+" first 10 items "+str(data_set[k][0:10]))
 			numpyDict[k]=numpy.asarray([float(i) for i in data_set[k]])
 		return tf.estimator.inputs.numpy_input_fn(
 			x=numpyDict,
@@ -95,11 +95,11 @@ class Titanic:
 		#tf.estimator.
 		# Build 1 layer fully connected DNN with 10, 10 units respectively.
 		self.classifier = tf.estimator.DNNClassifier(feature_columns=feature_cols,
-			hidden_units=[3],
+			hidden_units=[20,20,20],
 			model_dir="tf_model")
 
 		# Train
-		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=500)
+		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=5000)
 		#steps=50   loss final = 78.835
 		#steps=500  loss final = 80.6114
 		#steps=5000 loss final = 76.5161
