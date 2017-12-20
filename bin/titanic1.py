@@ -22,7 +22,7 @@ class Titanic:
 	def partitionTestSet(self,fullDict,modulo):
 		train_set={}
 		test_set={}
-		print("Arbitary value length = "+str(len(next (iter (fullDict.values())))))
+		#print("Arbitary value length = "+str(len(next (iter (fullDict.values())))))
 		for n in range(0,len(fullDict[self.FEATURES[0]])):
 			for k in fullDict:
 				if k not in train_set:
@@ -38,16 +38,12 @@ class Titanic:
 	def get_input_fn(self, data_set, num_epochs=None, shuffle=True):
 		numpyDict = {}
 		for k in self.FEATURES:
-			print(k)
-			print(data_set[k])
-			print([float(i) for i in data_set[k]])
 			numpyDict[k]=numpy.asarray([float(i) for i in data_set[k]])
-			print(str(k)+" first entry is "+str(data_set[k][0]))
 		return tf.estimator.inputs.numpy_input_fn(
-    		x=numpyDict,
-    		y=numpy.asarray(data_set[self.LABEL[0]]),
-    		num_epochs=num_epochs,
-    		shuffle=shuffle)
+			x=numpyDict,
+			y=numpy.asarray([float(i) for i in data_set[self.LABEL[0]]]),
+			num_epochs=num_epochs,
+			shuffle=shuffle)
 
 	def loadCsvData(self, csvFilename):
 		columnDict={}
