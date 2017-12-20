@@ -6,20 +6,34 @@ import numpy
 import csv
 import logging
 logging.getLogger().setLevel(logging.ERROR)
+import shutil
 
 class Titanic:
 
-	#FEATURES = ["Pclass","Sex","Age","SibSp","Parch"]
-	FEATURES = ["Pclass","SibSp","Parch"]
+	FEATURES = ["Pclass","Sex","Age","SibSp","Parch"]
+	#FEATURES = ["Pclass","SibSp","Parch"]
 	LABEL = ["Survived"]
 
 
 	def __init__(self, csvFilename):
+		self.columnMap={}
+		shutil.rmtree('tf_model')
 		print("Starting Titanic machine learning exercise")
 		fullDict=self.loadCsvData(csvFilename)
-		self.train_set, self.test_set=self.partitionTestSet(fullDict,5)
+		self.train_set, self.test_set=self.partitionTestSet(fullDict,3)
 		print("train_set_size="+str(len(self.train_set[self.FEATURES[0]])))
 		print("test_set_size="+str(len(self.test_set[self.FEATURES[0]])))
+
+	def resolveFloat(self, k, val):
+		if k in self.columnMap:
+			if val not in self.columnMap[k]:
+				self.columnMap[k]["num_idx"]=self.columnMap[k]["num_idx"]+1.0
+				self.columnMap[k][val]=self.columnMap[k]["num_idx"]
+		else:
+			self.columnMap[k]={}
+			self.columnMap[k]["num_idx"]=0.0
+			self.columnMap[k][val]=0.0
+		return self.columnMap[k][val]
 
 	def partitionTestSet(self,fullDict,modulo):
 		train_set={}
@@ -30,16 +44,18 @@ class Titanic:
 				if k not in train_set:
 					train_set[k]=[]
 					test_set[k]=[]
+				val = self.resolveFloat(k,fullDict[k][n])
 				if n%modulo == 0:
-					test_set[k].append(fullDict[k][n])
+					test_set[k].append(val)
 				else:
-					train_set[k].append(fullDict[k][n])
+					train_set[k].append(val)
 		return train_set, test_set
 
 	#https://www.tensorflow.org/get_started/input_fn
 	def get_input_fn(self, data_set, num_epochs=5, shuffle=False):
 		numpyDict = {}
 		for k in self.FEATURES:
+			print(str(k)+" first 10 items "+str(data_set[k][0:10]))
 			numpyDict[k]=numpy.asarray([float(i) for i in data_set[k]])
 		return tf.estimator.inputs.numpy_input_fn(
 			x=numpyDict,
@@ -75,11 +91,11 @@ class Titanic:
 		#tf.estimator.
 		# Build 1 layer fully connected DNN with 10, 10 units respectively.
 		self.classifier = tf.estimator.DNNClassifier(feature_columns=feature_cols,
-			hidden_units=[10],
-			model_dir="/tmp/boston_model")
+			hidden_units=[3],
+			model_dir="tf_model")
 
 		# Train
-		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=None)
+		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=500)
 		#steps=50   loss final = 78.835
 		#steps=500  loss final = 80.6114
 		#steps=5000 loss final = 76.5161
