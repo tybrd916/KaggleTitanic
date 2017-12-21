@@ -4,26 +4,70 @@
 import tensorflow as tf
 import numpy
 import csv
+import warnings
+warnings.filterwarnings('ignore')
 import logging
-logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.ERROR)
 import shutil
+import os
 import re
+
+SHUFFLE=True
+INPUTSTEPS=None
+EPOCHS=200
+HIDDENUNITS=[500,500]
 
 class Titanic:
 
-	FEATURES = ["Pclass","Sex","Age","SibSp","Parch","Cabin"]
+	#FEATURES = ["Pclass","Sex","Age","SibSp","Parch","companions"]
+	#FEATURES = ["Pclass","Sex","Age","companions"] #Test Accuracy: 0.821229
+	FEATURES = ["Pclass","Sex","Age","SibSp","Parch"] #Test Accuracy: 0.854749 1x with shuffle... 
 	#FEATURES = ["Pclass","SibSp","Parch"]
 	LABEL = ["Survived"]
 
 
 	def __init__(self, csvFilename):
 		self.columnMap={}
-		shutil.rmtree('tf_model')
+		#Clear model to start from scratch every time!
+		if os.path.exists('tf_model'):
+			shutil.rmtree('tf_model')
+
 		print("Starting Titanic machine learning exercise")
 		fullDict=self.loadCsvData(csvFilename)
+		fullDict=self.featureEngineering(fullDict)
 		self.train_set, self.test_set=self.partitionTestSet(fullDict,5)
 		print("train_set_size="+str(len(self.train_set[self.FEATURES[0]])))
 		print("test_set_size="+str(len(self.test_set[self.FEATURES[0]])))
+
+	def featureEngineering(self, fullDict):
+		#Create Age buckets feature
+		fullDict["AgeBuckets"]=[]
+		for i in range(0,len(fullDict["Age"])):
+			if fullDict["Age"][i]== None or fullDict["Age"][i]=="":
+				fullDict["Age"][i]="-1"
+				fullDict["AgeBuckets"].append("99_Unknown")
+			else:
+				if float(fullDict["Age"][i]) <= 2:
+					fullDict["AgeBuckets"].append("Baby")
+				elif float(fullDict["Age"][i])<=10:
+					fullDict["AgeBuckets"].append("Child")
+				elif float(fullDict["Age"][i])<20:
+					fullDict["AgeBuckets"].append("Teen")
+				elif float(fullDict["Age"][i])<30:
+					fullDict["AgeBuckets"].append("Twenties")
+				elif float(fullDict["Age"][i])<40:
+					fullDict["AgeBuckets"].append("Thirties")
+				elif float(fullDict["Age"][i])<60:
+					fullDict["AgeBuckets"].append("FortiesFifties")
+				else:
+					fullDict["AgeBuckets"].append("Elderly")
+
+		#Create companion
+		fullDict["companions"]=[]
+		for i in range(0,len(fullDict["Parch"])):
+			fullDict["companions"].append(float(fullDict["Parch"][i])+float(fullDict["SibSp"][i]))
+
+		return fullDict
 
 	def resolveFloat(self, k, val):
 		try:
@@ -95,11 +139,13 @@ class Titanic:
 		#tf.estimator.
 		# Build 1 layer fully connected DNN with 10, 10 units respectively.
 		self.classifier = tf.estimator.DNNClassifier(feature_columns=feature_cols,
-			hidden_units=[20,20,20],
+			n_classes=2,
+			optimizer=tf.train.ProximalAdagradOptimizer(learning_rate=0.1),
+			hidden_units=HIDDENUNITS,
 			model_dir="tf_model")
 
 		# Train
-		self.classifier.train(input_fn=self.get_input_fn(self.train_set), steps=5000)
+		self.classifier.train(input_fn=self.get_input_fn(self.train_set, shuffle=SHUFFLE, num_epochs=EPOCHS), steps=INPUTSTEPS)
 		#steps=50   loss final = 78.835
 		#steps=500  loss final = 80.6114
 		#steps=5000 loss final = 76.5161
