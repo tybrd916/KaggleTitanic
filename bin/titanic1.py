@@ -103,7 +103,9 @@ class Titanic:
 	def partitionTestSet(self,fullDict,sampleSegment,modulo):
 		train_set={}
 		test_set={}
-		testSegment=sampleSegment%modulo
+		testSegment=0
+		if modulo > 0:
+			testSegment=sampleSegment%modulo
 		#print("Arbitary value length = "+str(len(next (iter (fullDict.values())))))
 		for n in range(0,len(fullDict[self.FEATURES[0]])):
 			for k in fullDict:
@@ -111,21 +113,24 @@ class Titanic:
 					train_set[k]=[]
 					test_set[k]=[]
 				val = self.resolveFloat(k,fullDict[k][n])
-				if n%modulo == testSegment:
+				if modulo > 0 and n%modulo == testSegment:
 					test_set[k].append(val)
 				else:
 					train_set[k].append(val)
 		return train_set, test_set
 
 	#https://www.tensorflow.org/get_started/input_fn
-	def get_input_fn(self, data_set, num_epochs=2000, shuffle=True):
+	def get_input_fn(self, data_set, num_epochs=1, shuffle=False):
 		numpyDict = {}
 		for k in self.FEATURES:
 			#print(str(k)+" first 10 items "+str(data_set[k][0:10]))
 			numpyDict[k]=numpy.asarray([float(i) for i in data_set[k]])
+		targetArray=None
+		if self.LABEL[0] in data_set:
+			targetArray=numpy.asarray([float(i) for i in data_set[self.LABEL[0]]])
 		return tf.estimator.inputs.numpy_input_fn(
 			x=numpyDict,
-			y=numpy.asarray([float(i) for i in data_set[self.LABEL[0]]]),
+			y=targetArray,
 			num_epochs=num_epochs,
 			shuffle=shuffle)
 
@@ -187,17 +192,32 @@ class Titanic:
 		self.resultFile.write("Test Accuracy: {0:f}\n".format(accuracy_score)+"\n")
 		self.resultFile.flush()
 
+	def predictCsv(self,testCsv):
+		fullDict=self.loadCsvData(testCsv)
+		fullDict=self.featureEngineering(fullDict)
+		fullDict, testDict = self.partitionTestSet(fullDict,0,0)
+
+		#predictions = list(self.classifier.predict(input_fn=self.get_input_fn(fullDict),outputs="Survived"))
+		#predicted_classes = [p["classes"] for p in predictions]
+		#print("New Samples, Class Predictions:    {}\n".format(predicted_classes))
+
+		cnt=0
+		for p in self.classifier.predict(input_fn=self.get_input_fn(fullDict),predict_keys=["classes"]):
+			print("prediction="+str(p))
+		print("prediction count = "+str(cnt))
+
 titanic = Titanic("../data/train.csv")
 #titanic.printCsvDict()
 #print(str(titanic.get_input_fn(titanic.train_set)))
 titanic.trainModel(0,5)
-titanic.trainModel(1,5)
-titanic.trainModel(2,5)
-titanic.trainModel(3,5)
-titanic.trainModel(4,5)
+#titanic.trainModel(1,5)
+#titanic.trainModel(2,5)
+#titanic.trainModel(3,5)
+#titanic.trainModel(4,5)
 titanic.evaluateModel(0,5)
-titanic.evaluateModel(1,5)
-titanic.evaluateModel(2,5)
-titanic.evaluateModel(3,5)
-titanic.evaluateModel(4,5)
-titanic.printResults
+#titanic.evaluateModel(1,5)
+#titanic.evaluateModel(2,5)
+#titanic.evaluateModel(3,5)
+#titanic.evaluateModel(4,5)
+titanic.predictCsv("../data/test.csv")
+#titanic.printResults()
