@@ -12,16 +12,17 @@ import shutil
 import os
 import re
 
-SHUFFLE=True
+SHUFFLE=False
 INPUTSTEPS=None
 EPOCHS=200
 HIDDENUNITS=[500,500]
 
 class Titanic:
 
+	#FEATURES = ["Pclass","Sex","Age","SibSp","Parch"]
 	#FEATURES = ["Pclass","Sex","Age","SibSp","Parch","companions"]
 	#FEATURES = ["Pclass","Sex","Age","companions"] #Test Accuracy: 0.821229
-	FEATURES = ["Pclass","Sex","Age","SibSp","Parch"] #Test Accuracy: 0.854749 1x with shuffle... 
+	FEATURES = ["Pclass","Sex","Age","SibSp","Parch","Title"] #Test Accuracy: 0.854749 1x with shuffle... 
 	#FEATURES = ["Pclass","SibSp","Parch"]
 	LABEL = ["Survived"]
 
@@ -32,14 +33,30 @@ class Titanic:
 		if os.path.exists('tf_model'):
 			shutil.rmtree('tf_model')
 
+		self.resultFile=open("results.txt","w")
+		self.resultFile.write("FEATURES: "+str(self.FEATURES)+"\nSHUFFLE: "+str(SHUFFLE)+"\nINPUTSTEPS: "+str(INPUTSTEPS)+"\nEPOCHS: "+str(EPOCHS)+"\nHIDDENUNITS: "+str(HIDDENUNITS)+"\n\n")
+		self.resultFile.flush()
+
+		self.csvFilename=csvFilename
 		print("Starting Titanic machine learning exercise")
-		fullDict=self.loadCsvData(csvFilename)
-		fullDict=self.featureEngineering(fullDict)
-		self.train_set, self.test_set=self.partitionTestSet(fullDict,5)
-		print("train_set_size="+str(len(self.train_set[self.FEATURES[0]])))
-		print("test_set_size="+str(len(self.test_set[self.FEATURES[0]])))
+
+	def __del__(self):
+		print("Model Finished")
+
+	def printResults(self):
+		self.resultFile.close()
+		#Display results on STDOUT
+		with open("results.txt","r") as file:
+			for line in file:
+				print(line)
+			file.close()
 
 	def featureEngineering(self, fullDict):
+		#Create title feature
+		fullDict["Title"]=[]
+		for i in range(0,len(fullDict["Name"])):
+			fullDict["Title"].append(re.sub("^[^,][^,]*[,][ ]([^ ][^ ]*) .*$","\\1",fullDict["Name"][i]))
+
 		#Create Age buckets feature
 		fullDict["AgeBuckets"]=[]
 		for i in range(0,len(fullDict["Age"])):
@@ -83,9 +100,10 @@ class Titanic:
 				self.columnMap[k][val]=0.0
 			return self.columnMap[k][val]
 
-	def partitionTestSet(self,fullDict,modulo):
+	def partitionTestSet(self,fullDict,sampleSegment,modulo):
 		train_set={}
 		test_set={}
+		testSegment=sampleSegment%modulo
 		#print("Arbitary value length = "+str(len(next (iter (fullDict.values())))))
 		for n in range(0,len(fullDict[self.FEATURES[0]])):
 			for k in fullDict:
@@ -93,7 +111,7 @@ class Titanic:
 					train_set[k]=[]
 					test_set[k]=[]
 				val = self.resolveFloat(k,fullDict[k][n])
-				if n%modulo == 0:
+				if n%modulo == testSegment:
 					test_set[k].append(val)
 				else:
 					train_set[k].append(val)
@@ -133,7 +151,16 @@ class Titanic:
 	def printCsvDict(self):
 		print(str(self.train_set))
 
-	def trainModel(self):
+	def repopulateModel(self,sampleSegment,modulo):
+
+		fullDict=self.loadCsvData(self.csvFilename)
+		fullDict=self.featureEngineering(fullDict)
+		self.train_set, self.test_set=self.partitionTestSet(fullDict,sampleSegment,modulo)
+		print("train_set_size="+str(len(self.train_set[self.FEATURES[0]])))
+		print("test_set_size="+str(len(self.test_set[self.FEATURES[0]])))
+
+	def trainModel(self,sampleSegment,modulo):
+		self.repopulateModel(sampleSegment,modulo)
 		# Feature cols
 		feature_cols = [tf.feature_column.numeric_column(k) for k in self.FEATURES]
 		#tf.estimator.
@@ -151,15 +178,26 @@ class Titanic:
 		#steps=5000 loss final = 76.5161
 		#steps=50000loss final = 68.7828
 
-	def evaluateModel(self):
+	def evaluateModel(self,sampleSegment,modulo):
+		self.repopulateModel(sampleSegment,modulo)
 		# Evaluate accuracy.
 		print("Evaluate accuracy score")
 		accuracy_score = self.classifier.evaluate(input_fn=self.get_input_fn(self.test_set))["accuracy"]
 
-		print("\nTest Accuracy: {0:f}\n".format(accuracy_score))
+		self.resultFile.write("Test Accuracy: {0:f}\n".format(accuracy_score)+"\n")
+		self.resultFile.flush()
 
 titanic = Titanic("../data/train.csv")
 #titanic.printCsvDict()
 #print(str(titanic.get_input_fn(titanic.train_set)))
-titanic.trainModel()
-titanic.evaluateModel()
+titanic.trainModel(0,5)
+titanic.trainModel(1,5)
+titanic.trainModel(2,5)
+titanic.trainModel(3,5)
+titanic.trainModel(4,5)
+titanic.evaluateModel(0,5)
+titanic.evaluateModel(1,5)
+titanic.evaluateModel(2,5)
+titanic.evaluateModel(3,5)
+titanic.evaluateModel(4,5)
+titanic.printResults
